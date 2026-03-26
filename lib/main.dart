@@ -1,11 +1,16 @@
-import 'package:expense_tracker/pages/home.dart';
-import 'package:expense_tracker/pages/onboarding.dart';
-import 'package:expense_tracker/pages/signup.dart';
 import 'package:flutter/material.dart';
 import 'pages/login.dart';
-import 'pages/add_expense.dart';
 
-void main() {
+// 🔥 ADD THESE
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // 🔥 Initialize Firebase
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
   runApp(const MyApp());
 }
 
@@ -18,8 +23,8 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Expense Tracker',
       theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
-      home: const AddExpense(),
-      co
+      home: const Login(),
     );
   }
 }
+

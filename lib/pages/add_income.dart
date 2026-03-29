@@ -3,53 +3,20 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-class EditExpense extends StatefulWidget {
-  final String entryId;
-  final Map<String, dynamic> entryData;
-
-  const EditExpense({
-    super.key,
-    required this.entryId,
-    required this.entryData,
-  });
+class AddIncome extends StatefulWidget {
+  const AddIncome({super.key});
 
   @override
-  State<EditExpense> createState() => _EditExpenseState();
+  State<AddIncome> createState() => _AddIncomeState();
 }
 
-class _EditExpenseState extends State<EditExpense> {
+class _AddIncomeState extends State<AddIncome> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _amountController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   
-  String _selectedCategory = "Shopping";
   DateTime _selectedDate = DateTime.now();
-  
-  final List<String> _categories = [
-    "Shopping",
-    "Grocery",
-    "Travel",
-    "Food",
-    "Others"
-  ];
-
-  final Map<String, Color> _categoryColors = {
-    "Shopping": Colors.blue,
-    "Grocery": Colors.red,
-    "Travel": Colors.orange,
-    "Food": Colors.purple,
-    "Others": Colors.green,
-  };
-
-  @override
-  void initState() {
-    super.initState();
-    // Populate fields with existing data
-    _amountController.text = widget.entryData['amount'].toString();
-    _descriptionController.text = widget.entryData['description'] ?? '';
-    _selectedCategory = widget.entryData['category'] ?? 'Shopping';
-    _selectedDate = (widget.entryData['date'] as Timestamp).toDate();
-  }
+  bool isLoading = false;
 
   @override
   void dispose() {
@@ -58,44 +25,58 @@ class _EditExpenseState extends State<EditExpense> {
     super.dispose();
   }
 
-  Future<void> _updateExpense() async {
-    if (_formKey.currentState!.validate()) {
+  Future<void> _saveIncome() async {
+    if (_amountController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please enter amount"),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    setState(() => isLoading = true);
+
+    try {
       String uid = FirebaseAuth.instance.currentUser!.uid;
       
       Map<String, dynamic> data = {
         'uid': uid,
         'amount': double.parse(_amountController.text),
         'description': _descriptionController.text,
-        'category': _selectedCategory,
         'date': Timestamp.fromDate(_selectedDate),
+        'createdAt': Timestamp.now(),
       };
       
-      try {
-        await FirebaseFirestore.instance
-            .collection('expenses')
-            .doc(widget.entryId)
-            .update(data);
-        
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Expense updated successfully!'),
-              backgroundColor: Colors.green,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-          Navigator.pop(context, true);
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error: ${e.toString()}'),
-              backgroundColor: Colors.red,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
+      await FirebaseFirestore.instance
+          .collection('income')  // Make sure this is 'income'
+          .add(data);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Income added successfully!'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        Navigator.pop(context, true);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => isLoading = false);
       }
     }
   }
@@ -110,7 +91,7 @@ class _EditExpenseState extends State<EditExpense> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
-              primary: Colors.red,
+              primary: Colors.green,
               onPrimary: Colors.white,
               surface: Colors.white,
               onSurface: Colors.black,
@@ -133,7 +114,7 @@ class _EditExpenseState extends State<EditExpense> {
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
         title: const Text(
-          'Edit Expense',
+          'Add Income',
           style: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 20,
@@ -141,12 +122,12 @@ class _EditExpenseState extends State<EditExpense> {
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        foregroundColor: Colors.red.shade700,
+        foregroundColor: Colors.green.shade700,
         centerTitle: true,
         flexibleSpace: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [Colors.red.shade600, Colors.red.shade400],
+              colors: [Colors.green.shade600, Colors.green.shade400],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -170,11 +151,11 @@ class _EditExpenseState extends State<EditExpense> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Expense Type Card
+                // Income Type Card
                 Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Colors.red.shade50, Colors.red.shade100],
+                      colors: [Colors.green.shade50, Colors.green.shade100],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -186,12 +167,12 @@ class _EditExpenseState extends State<EditExpense> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.red.shade200,
+                          color: Colors.green.shade200,
                           borderRadius: BorderRadius.circular(15),
                         ),
                         child: Icon(
-                          Icons.trending_down,
-                          color: Colors.red.shade700,
+                          Icons.trending_up,
+                          color: Colors.green.shade700,
                           size: 28,
                         ),
                       ),
@@ -200,7 +181,7 @@ class _EditExpenseState extends State<EditExpense> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            "Expense Transaction",
+                            "Income Transaction",
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.grey,
@@ -208,11 +189,11 @@ class _EditExpenseState extends State<EditExpense> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            "Editing Expense Record",
+                            "Add New Income",
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
-                              color: Colors.red.shade700,
+                              color: Colors.green.shade700,
                             ),
                           ),
                         ],
@@ -265,7 +246,7 @@ class _EditExpenseState extends State<EditExpense> {
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Colors.red, width: 2),
+                            borderSide: const BorderSide(color: Colors.green, width: 2),
                           ),
                         ),
                         validator: (value) {
@@ -280,101 +261,6 @@ class _EditExpenseState extends State<EditExpense> {
                           }
                           return null;
                         },
-                      ),
-                    ],
-                  ),
-                ),
-                
-                const SizedBox(height: 20),
-                
-                // Category Card
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withOpacity(0.1),
-                        blurRadius: 10,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        "Category",
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.grey,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
-                        children: _categories.map((category) {
-                          bool isSelected = _selectedCategory == category;
-                          return GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                _selectedCategory = category;
-                              });
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 10,
-                              ),
-                              decoration: BoxDecoration(
-                                gradient: isSelected
-                                    ? LinearGradient(
-                                        colors: [
-                                          _categoryColors[category]!,
-                                          _categoryColors[category]!.withOpacity(0.7),
-                                        ],
-                                      )
-                                    : null,
-                                color: isSelected
-                                    ? null
-                                    : Colors.grey.shade100,
-                                borderRadius: BorderRadius.circular(20),
-                                border: isSelected
-                                    ? null
-                                    : Border.all(
-                                        color: Colors.grey.shade300,
-                                      ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    width: 8,
-                                    height: 8,
-                                    decoration: BoxDecoration(
-                                      color: _categoryColors[category],
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    category,
-                                    style: TextStyle(
-                                      color: isSelected
-                                          ? Colors.white
-                                          : Colors.grey.shade700,
-                                      fontWeight:
-                                          isSelected ? FontWeight.w600 : FontWeight.normal,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        }).toList(),
                       ),
                     ],
                   ),
@@ -423,7 +309,7 @@ class _EditExpenseState extends State<EditExpense> {
                             children: [
                               Icon(
                                 Icons.calendar_today,
-                                color: Colors.red.shade600,
+                                color: Colors.green.shade600,
                                 size: 20,
                               ),
                               const SizedBox(width: 12),
@@ -487,7 +373,7 @@ class _EditExpenseState extends State<EditExpense> {
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Colors.red),
+                            borderSide: const BorderSide(color: Colors.green),
                           ),
                         ),
                       ),
@@ -497,25 +383,25 @@ class _EditExpenseState extends State<EditExpense> {
                 
                 const SizedBox(height: 30),
                 
-                // Update Button
+                // Save Button
                 Container(
                   width: double.infinity,
                   height: 55,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Colors.red.shade600, Colors.red.shade400],
+                      colors: [Colors.green.shade600, Colors.green.shade400],
                     ),
                     borderRadius: BorderRadius.circular(15),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.red.withOpacity(0.3),
+                        color: Colors.green.withOpacity(0.3),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
                     ],
                   ),
                   child: ElevatedButton(
-                    onPressed: _updateExpense,
+                    onPressed: isLoading ? null : _saveIncome,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.transparent,
                       shadowColor: Colors.transparent,
@@ -523,25 +409,34 @@ class _EditExpenseState extends State<EditExpense> {
                         borderRadius: BorderRadius.circular(15),
                       ),
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.update,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'Update Expense',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                    child: isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.save,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'Save Income',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
-                    ),
                   ),
                 ),
                 
